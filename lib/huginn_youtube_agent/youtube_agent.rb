@@ -262,7 +262,7 @@ module Agents
                 log video
               end
               last_status['items'].each do |videobis|
-                if video == videobis
+                if video['id'] == videobis['id']
                   found = true
                 end
                 if interpolated['debug'] == 'true'
