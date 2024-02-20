@@ -230,7 +230,7 @@ module Agents
 
     def check_videos()
 
-      uri = URI.parse("https://www.googleapis.com/youtube/v3/search?key=#{interpolated['youtube_api_key']}&channelId=#{interpolated['channel_id']}&part=snippet,id&order=date&maxResults=#{interpolated['limit']}")
+      uri = URI.parse("https://www.googleapis.com/youtube/v3/search?key=#{interpolated['youtube_api_key']}&channelId=#{interpolated['channel_id']}&type=video&part=snippet,id&order=date&maxResults=#{interpolated['limit']}")
       request = Net::HTTP::Get.new(uri)
       request["Accept"] = "application/json"
 
@@ -245,44 +245,42 @@ module Agents
       log_curl_output(response.code,response.body)
 
       payload = JSON.parse(response.body)
-      if !memory['last_status']
+
+      if payload != memory['last_status']
         payload['items'].each do |video|
-          create_event payload: video
-        end
-        memory['last_status'] = payload
-      else
-        if payload != memory['last_status']
-          if memory['last_status'] == ''
-          else
+          found = false
+          if !memory['last_status'].nil? and memory['last_status'].present?
             last_status = memory['last_status']
-            payload['items'].each do |video|
-              found = false
-              if interpolated['debug'] == 'true'
-                log "video"
-                log video
-              end
-              last_status['items'].each do |videobis|
-                if video['id'] == videobis['id']
-                  found = true
-                end
+            if interpolated['debug'] == 'true'
+              log "video"
+              log video
+            end
+            last_status['items'].each do |videobis|
+              if video['id'] == videobis['id']
+                found = true
                 if interpolated['debug'] == 'true'
+                  log "found is #{found}"
                   log "videobis"
                   log videobis
-                  log "found is #{found}!"
                 end
-              end
-              if found == false
-                create_event payload: video
               end
             end
           end
-          memory['last_status'] = payload
-        else
-          if interpolated['debug'] == 'true'
-            log "nothing to compare"
+          if found == false
+            create_event payload: video
+          else
+            if interpolated['debug'] == 'true'
+              log "found is #{found}"
+            end
           end
         end
+        memory['last_status'] = payload
+      else
+        if interpolated['debug'] == 'true'
+          log "no diff"
+        end
       end
+
     end
 
     def trigger_action
